@@ -1,0 +1,36 @@
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: app-gateway
+  namespace: default
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - hosts:
+    - voting.example.com
+    port:
+      name: http
+      number: 80
+      protocol: HTTP
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: app-route
+  namespace: default
+spec:
+  gateways:
+  - app-gateway
+  hosts:
+  - voting.example.com
+  http:
+  - match:
+    - uri:
+        prefix: /
+    name: direct-routes
+    route:
+    - destination:
+        host: voting-app
+        port:
+          number: 8080

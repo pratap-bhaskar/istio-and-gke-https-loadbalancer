@@ -1,0 +1,63 @@
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+metadata:
+  namespace: istio-system
+  name: istio-ingress-cluster-admin
+spec:
+  hub: istio
+  tag: 1.5.1
+  profile: empty
+  components:
+    ingressGateways:
+    - name: istio-ingressgateway
+      enabled: true
+      k8s:
+        serviceAnnotations:
+          cloud.google.com/neg: '{"ingress": true}'
+        nodeSelector:
+          workloadType: gateway
+        tolerations:
+        - effect: NoSchedule
+          key: workloadType
+          operator: Equal
+          value: gateway
+        env:
+          - name: ISTIO_META_ROUTER_MODE
+            value: "sni-dnat"
+        service:
+          type: NodePort
+          ports:
+            - port: 80
+              name: http2
+            - port: 443
+              name: https
+            - port: 15443
+              targetPort: 15443
+              name: tls
+            - port: 15020
+              targetPort: 15020
+              name: http-health
+        hpaSpec:
+          maxReplicas: 5
+          minReplicas: 1
+          scaleTargetRef:
+            apiVersion: apps/v1
+            kind: Deployment
+            name: istio-ingressgateway
+          metrics:
+            - type: Resource
+              resource:
+                name: cpu
+                targetAverageUtilization: 80
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 2000m
+            memory: 1024Mi
+        strategy:
+          rollingUpdate:
+            maxSurge: "100%"
+            maxUnavailable: "25%"
+  
